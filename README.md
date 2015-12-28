@@ -2,6 +2,10 @@
 
 This application generates real-time facial animations for 3D models based on input sound files.
 
+A short presentation can be seen on my YouTube channel:
+
+https://youtu.be/I08ZYTYpRis
+
 
 ## How it works
 The application works in several steps:
