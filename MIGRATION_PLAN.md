@@ -57,28 +57,26 @@ The existing ActionScript/Flash implementation is deprecated and cannot run on m
 
 ### Implementation Priorities
 
-#### Priority 1: Foundation Components
-**Neural Network System** - Core mathematical operations with no external dependencies
-- Migrate backpropagation algorithm preserving floating-point precision
-- Implement network serialization compatible with existing trained models
-- Create comprehensive test suite validating against ActionScript reference
+#### Priority 1: Visual Validation (IMMEDIATE)
+**3D Avatar Animation** - Get avatar rendering and basic animation working first
+- Set up 3D framework with basic avatar display
+- Implement manual viseme triggering for visual validation
+- Create simple web interface to test facial animations
+- **Goal**: See animated avatar within first implementation session
 
-**Audio Processing Pipeline** - Linear Prediction Coding and feature extraction
-- Port LPC analysis maintaining coefficient accuracy
-- Implement windowing and overlap processing
-- Support both file-based and real-time audio streams
+#### Priority 2: Audio-to-Viseme Pipeline  
+**Audio Processing Pipeline** - Connect audio input to visual output
+- Port Linear Prediction Coding for feature extraction
+- Implement basic viseme classification (can use simplified rules initially)
+- Connect audio processing directly to avatar animation
+- **Goal**: Audio-driven animation working before neural network complexity
 
-#### Priority 2: Visual Components  
-**3D Avatar Animation** - Facial bone manipulation and rendering
-- Research optimal 3D framework (Babylon.js vs Three.js vs alternatives)
-- Implement viseme-to-bone mapping system
-- Support model loading from common 3D formats
-
-#### Priority 3: Integration Components
-**Training Interface** - User-facing tools for network development
-- Create web-based UI replacing MXML interface
-- Implement training progress visualization
-- Support batch processing and model export
+#### Priority 3: Neural Network Enhancement
+**Neural Network System** - Add sophisticated classification after visuals work
+- Migrate existing trained network for accurate viseme classification
+- Replace simplified rules with full neural network processing
+- Maintain compatibility with existing trained models
+- **Goal**: Production-quality classification with existing training data
 
 ### Key Technical Decisions Required
 
@@ -99,114 +97,132 @@ The existing ActionScript/Flash implementation is deprecated and cannot run on m
 
 ## Executable Tasks
 
-### Task Group 1: Neural Network Migration
+### Task Group 1: Visual Validation (EXECUTE FIRST)
 ```typescript
-// Target: Exact algorithmic replication of ActionScript neural network
+// Target: Immediate visual feedback - see avatar animating ASAP
+
+TASK: Set up basic 3D scene
+- Choose framework (recommend Babylon.js for TypeScript support)
+- Create minimal HTML page with 3D canvas
+- Set up camera, lighting, and basic scene
+- Load a simple test model (cube or sphere initially)
+- Validate: 3D scene renders in browser
+
+TASK: Create manual viseme controls
+- Add UI buttons for each viseme (v1-v6 from Phoneme.as:10-21)
+- Implement basic facial bone transformations for mouth shapes
+- Create simple morph targets or bone rotations for each viseme
+- Connect buttons to avatar facial changes
+- Validate: Clicking buttons visibly changes avatar mouth/face
+
+TASK: Implement avatar display
+- Research existing 3D model formats in codebase
+- Create fallback avatar if original models not accessible
+- Implement basic facial rig with jaw, lips, eyebrow controls
+- Test smooth transitions between viseme states
+- Validate: Avatar responds immediately to manual input
+```
+
+### Task Group 2: Audio-to-Visual Bridge (EXECUTE SECOND)  
+```typescript
+// Target: Connect audio input directly to avatar animation
+
+TASK: Implement basic audio processing
+- Set up Web Audio API for microphone input
+- Create simple audio analysis (volume/frequency detection initially)
+- Implement basic viseme mapping based on audio characteristics
+- Use simplified rules before full LPC implementation
+- Validate: Speaking into microphone triggers avatar mouth movement
+
+TASK: Create audio file processing
+- Support loading MP3/WAV files from lib/female/ and lib/male/
+- Implement basic feature extraction (can be simplified initially)
+- Map audio features to viseme sequences over time
+- Display viseme sequence as avatar animation
+- Validate: Audio files drive avatar lip sync animation
+
+TASK: Add real-time audio visualization
+- Create simple audio waveform or spectrum display
+- Show current detected viseme/phoneme in UI
+- Add playback controls for audio files
+- Connect audio playback timeline to avatar animation
+- Validate: User can see audio analysis driving avatar in real-time
+```
+
+### Task Group 3: Neural Network Migration (EXECUTE THIRD)
+```typescript
+// Target: Accurate viseme classification after visuals confirmed working
 
 TASK: Migrate NeuralNetwork class
-- Analyze existing network architecture from NeuralNetwork.as:216
-- Port backpropagation algorithm maintaining floating-point precision  
-- Implement save/load functionality compatible with existing ByteArray format
-- Validate: Network produces identical outputs for identical inputs
+- Port backpropagation algorithm from NeuralNetwork.as:216
+- Maintain floating-point precision for identical results
+- Create test suite validating against ActionScript reference
+- Validate: Network produces identical outputs for test inputs
 
-TASK: Migrate Neuron class  
-- Port activation function and weight adjustment logic from Neuron.as
-- Maintain momentum calculation accuracy
-- Implement bias handling identical to ActionScript version
-- Validate: Individual neuron calculations match reference implementation
+TASK: Integrate trained network
+- Implement network serialization compatible with existing models
+- Load existing trained networks from ActionScript system
+- Replace simplified audio-to-viseme rules with neural network classification
+- Validate: Trained network improves lip sync accuracy significantly
 
-TASK: Create network serialization
-- Replace ByteArray with Buffer/JSON while maintaining data compatibility
-- Support loading existing .network files from ActionScript version
-- Implement compression equivalent to ActionScript's ByteArray.compress()
-- Validate: Serialized networks load correctly in both systems
+TASK: Implement Linear Prediction Coding
+- Port LP.analyze() function maintaining coefficient accuracy  
+- Implement full audio feature extraction pipeline
+- Connect LPC features to neural network input
+- Validate: Full pipeline matches ActionScript system output
 ```
 
-### Task Group 2: Audio Processing Migration
+### Task Group 4: Advanced Features (EXECUTE LAST)
 ```typescript
-// Target: Preserve LPC analysis accuracy and performance
+// Target: Polish and production features after core functionality works
 
-TASK: Migrate Linear Prediction Coding
-- Port LP.analyze() function from LP.as:115-125 maintaining coefficient accuracy
-- Implement Hamming window generation from LP.as:17-25
-- Port autocorrelation calculation from LP.as:29-68
-- Validate: LPC coefficients match ActionScript output within floating-point precision
+TASK: Enhance avatar realism
+- Implement eye blinking system from AvatarCore.as:100-103
+- Add lookAt() functionality for eye and head tracking
+- Create smooth expression transitions and blending
+- Support emotion overlays on top of viseme animations
+- Validate: Avatar appears more lifelike and responsive
 
-TASK: Implement audio pipeline
-- Create audio buffer management for 30ms windows
-- Support both file-based and real-time audio processing
-- Implement decimation and windowing as specified in LipsyncSettings
-- Validate: Feature extraction produces consistent results across audio sources
+TASK: Add training interface
+- Create web-based neural network training UI
+- Support loading training audio samples
+- Implement training progress visualization
+- Add network export/import functionality
+- Validate: Users can train custom networks through web interface
 
-TASK: Port phoneme mapping
-- Migrate viseme classification from Phoneme.as:8-27
-- Maintain exact viseme ID mapping for neural network compatibility
-- Implement phoneme collections and lookup functionality
-- Validate: Phoneme mappings produce identical viseme classifications
-```
-
-### Task Group 3: 3D Framework Evaluation
-```typescript
-// Target: Select optimal framework through systematic comparison
-
-TASK: Prototype with Babylon.js
-- Create basic scene with camera and lighting
-- Load sample 3D model (research DAE vs GLTF conversion)
-- Implement basic bone manipulation for facial animation
-- Measure: Loading performance, animation smoothness, bundle size
-
-TASK: Prototype with Three.js  
-- Create equivalent scene setup
-- Test model loading capabilities and format support
-- Implement basic facial bone controls
-- Measure: Performance comparison, development complexity, feature completeness
-
-TASK: Comparative analysis
-- Document API differences and TypeScript support quality
-- Analyze animation system capabilities for facial expression control
-- Evaluate community support and documentation quality
-- Decision: Select framework based on objective criteria matrix
-```
-
-### Task Group 4: Avatar Animation System
-```typescript
-// Target: Replicate AvatarCore.as functionality in chosen 3D framework
-
-TASK: Migrate AvatarCore
-- Port avatar initialization and management from AvatarCore.as:34-51
-- Implement setViseme() function maintaining expression blending logic
-- Create eye blinking system replicating timer-based behavior
-- Validate: Avatar responds to viseme commands identically to ActionScript version
-
-TASK: Implement facial feature controllers
-- Port AvatarEye, AvatarMouth, AvatarNeck functionality
-- Maintain bone transformation mathematics from original implementation  
-- Implement lookAt() functionality for eye and neck movement
-- Validate: Facial animations match reference system behavior
-
-TASK: Create expression system
-- Port AvatarExpression and ExpressionsCollection classes
-- Implement expression blending and interpolation
-- Support emotion and viseme combination as in original system
-- Validate: Expression transitions are smooth and mathematically equivalent
+TASK: Optimize performance
+- Profile audio processing and rendering performance
+- Implement WebWorkers for audio analysis if needed
+- Optimize 3D rendering for smooth real-time animation
+- Add quality/performance settings for different devices
+- Validate: System runs smoothly on target hardware configurations
 ```
 
 ## Acceptance Criteria
 
-### System-Level Validation
-- **Input**: Audio file used in original ActionScript system
-- **Expected Output**: Identical viseme sequence and timing
-- **Verification Method**: Frame-by-frame comparison of avatar animation
+### Visual Validation (Immediate Goals)
+- **Task Group 1 Complete**: Avatar visible and animating in browser within first session
+- **Manual Control**: User can click buttons to change avatar facial expressions
+- **Smooth Animation**: Transitions between viseme states are visually smooth
+- **Responsive UI**: No lag between user input and avatar response
 
-### Performance Benchmarks
-- **Neural Network**: Classification speed within 10% of ActionScript performance
-- **Audio Processing**: Real-time capability with <50ms latency for 30ms windows  
-- **3D Rendering**: Maintain 30fps with complex facial animations
+### Audio-Visual Integration (Short-term Goals)  
+- **Task Group 2 Complete**: Audio input drives avatar animation in real-time
+- **File Playback**: MP3 files from lib/ directory animate avatar correctly
+- **Microphone Input**: Speaking into mic triggers appropriate mouth movements
+- **Visual Feedback**: User can see audio analysis and resulting viseme detection
 
-### Compatibility Requirements
-- **Model Support**: Successfully load and animate existing avatar models
-- **Network Support**: Import and use existing trained neural networks
-- **Audio Support**: Process same audio formats as ActionScript version
+### System-Level Validation (Final Goals)
+- **Neural Network Integration**: Trained networks produce accurate lip sync
+- **Performance**: Real-time processing with <50ms audio latency
+- **Compatibility**: System works with existing audio samples and trained models
+
+### Success Milestones
+1. **Hour 1**: 3D avatar rendering in browser
+2. **Hour 2**: Manual viseme controls working  
+3. **Day 1**: Audio files driving avatar animation
+4. **Week 1**: Real-time microphone lip sync
+5. **Week 2**: Neural network integration complete
 
 ---
 
