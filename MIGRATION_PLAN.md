@@ -1,293 +1,213 @@
-# LipSync ActionScript to TypeScript Migration Plan
+# LipSync Migration Specification
 
-## Project Overview
+## What We're Building
 
-**Original Project**: Real-time facial animation application that generates 3D facial animations from audio input using neural networks and linear prediction.
+A TypeScript-based real-time facial animation system that processes audio input to generate synchronized 3D avatar lip movements using neural networks and linear prediction coding.
 
-**Migration Goal**: Convert from ActionScript/Flash/AIR to TypeScript/Node.js/Web for cross-platform compatibility and modern deployment.
+## Why This Matters
 
-## Current Architecture Analysis
+The existing ActionScript/Flash implementation is deprecated and cannot run on modern platforms. We need to preserve the core facial animation technology while making it accessible through modern web browsers and Node.js environments.
 
-### Core Components Identified
+## Core User Scenarios
 
-1. **Neural Network System** (`src/lipsync/core/network/`)
-   - `NeuralNetwork.as` - Core ML implementation with backpropagation
-   - `Neuron.as` - Individual neuron implementation
-   - Training patterns and network serialization
+1. **Audio-to-Animation Pipeline**: User provides audio file → system extracts features → neural network classifies visemes → avatar animates in real-time
+2. **Neural Network Training**: User provides labeled audio samples → system trains custom networks → exports trained models
+3. **Real-time Animation**: User speaks into microphone → system processes audio stream → avatar lip-syncs in real-time
+4. **Avatar Customization**: User loads 3D models → system maps facial bones → animations work with custom avatars
 
-2. **Audio Processing** (`src/lipsync/core/`)
-   - `LipsyncSettings.as` - Configuration parameters
-   - `lpc/LP.as` - Linear Prediction Coding for feature extraction
-   - `phoneme/` - Phoneme and viseme mapping
+## Functional Requirements
 
-3. **3D Avatar System** (`src/avatar3D/`)
-   - `AvatarCore.as` - Core avatar controller
-   - `AvatarAnimator.as` - Animation management
-   - `face/` - Eye, mouth, neck animation components
-   - `expression/` - Expression and viseme handling
+### FR1: Audio Feature Extraction
+- **Input**: Raw audio data (PCM samples, 44.1kHz)
+- **Process**: Apply Linear Prediction Coding (LPC) analysis with order-9 coefficients
+- **Output**: Feature vectors representing spectral characteristics
+- **Constraints**: Process in 30ms windows with configurable overlap
 
-4. **3D Rendering** (`src/generic3D/`)
-   - Away3D-based rendering system
-   - Collada (.dae) model loading
-   - Material and texture management
+### FR2: Neural Network Classification  
+- **Input**: LPC feature vectors
+- **Process**: Multi-layer perceptron with configurable architecture (default: 2 hidden layers, 50 neurons each)
+- **Output**: Viseme probabilities (9 viseme classes)
+- **Constraints**: Support training from labeled samples, network serialization/deserialization
 
-5. **Training Interface** (`src/lipsync/training/`)
-   - MXML-based training interface
-   - Neural network training workflows
-   - Sample data management
+### FR3: 3D Avatar Animation
+- **Input**: Viseme classifications with confidence values
+- **Process**: Map visemes to facial bone transformations
+- **Output**: Real-time 3D avatar facial animation
+- **Constraints**: Support eye blinking, head movement, smooth transitions between visemes
 
-6. **Assets**
-   - Audio samples (MP3) for training
-   - 3D models (referenced but not found in lib/)
-   - Textures and materials
+### FR4: Training Pipeline
+- **Input**: Audio samples with viseme labels
+- **Process**: Extract features, train neural network with backpropagation
+- **Output**: Trained network ready for real-time use
+- **Constraints**: Support iterative training, progress monitoring, MSE targeting
 
-## Migration Strategy
+### FR5: Model Import/Export
+- **Input**: 3D avatar models in common formats
+- **Process**: Parse geometry, identify facial bones, map to animation rig
+- **Output**: Avatar ready for lip-sync animation
+- **Constraints**: Support multiple model formats, maintain bone hierarchy
 
-### Phase 1: Core Neural Network Migration (Weeks 1-2)
-**Priority: HIGH - Foundation for everything else**
+## Migration Approach
 
-#### Tasks:
-- [ ] Migrate `NeuralNetwork.as` to TypeScript class
-- [ ] Migrate `Neuron.as` to TypeScript class  
-- [ ] Implement network serialization (replace ByteArray with Buffer/JSON)
-- [ ] Create comprehensive unit tests using Jest
-- [ ] Benchmark performance against ActionScript version
+### Critical Success Factors
+1. **Algorithmic Fidelity**: Neural network must produce identical results to ActionScript version
+2. **Performance Preservation**: Real-time audio processing cannot introduce significant latency  
+3. **Cross-Platform Compatibility**: Must work in browsers and Node.js environments
+4. **Incremental Migration**: Each component should be independently testable and usable
 
-#### Dependencies:
-- No external dependencies required
-- Pure mathematical operations
+### Implementation Priorities
 
-#### Migration Approach:
-- **TDD**: Write tests first based on existing functionality
-- **1:1 mapping**: Preserve existing algorithm logic exactly
-- **Validation**: Test against saved network files from ActionScript version
+#### Priority 1: Foundation Components
+**Neural Network System** - Core mathematical operations with no external dependencies
+- Migrate backpropagation algorithm preserving floating-point precision
+- Implement network serialization compatible with existing trained models
+- Create comprehensive test suite validating against ActionScript reference
 
----
+**Audio Processing Pipeline** - Linear Prediction Coding and feature extraction
+- Port LPC analysis maintaining coefficient accuracy
+- Implement windowing and overlap processing
+- Support both file-based and real-time audio streams
 
-### Phase 2: Audio Processing & LPC (Weeks 3-4)
-**Priority: HIGH - Critical for audio feature extraction**
+#### Priority 2: Visual Components  
+**3D Avatar Animation** - Facial bone manipulation and rendering
+- Research optimal 3D framework (Babylon.js vs Three.js vs alternatives)
+- Implement viseme-to-bone mapping system
+- Support model loading from common 3D formats
 
-#### Tasks:
-- [ ] Migrate Linear Prediction Coding (`LP.as`)
-- [ ] Implement audio processing pipeline
-- [ ] Research Web Audio API for browser compatibility
-- [ ] Create Node.js audio processing for server-side training
-- [ ] Migrate phoneme/viseme mapping system
+#### Priority 3: Integration Components
+**Training Interface** - User-facing tools for network development
+- Create web-based UI replacing MXML interface
+- Implement training progress visualization
+- Support batch processing and model export
 
-#### Dependencies:
-- Web Audio API (browser)
-- Node.js audio libraries (server-side)
-- Consider: `web-audio-api`, `node-wav`
+### Key Technical Decisions Required
 
-#### Uncertainties to Resolve:
-- **Audio format support**: Verify MP3/WAV processing capabilities
-- **Real-time processing**: Web Audio API latency vs ActionScript
-- **Cross-platform audio**: Browser vs Node.js compatibility
+#### Decision 1: 3D Framework Selection
+**Options**: Babylon.js (comprehensive), Three.js (lightweight), A-Frame (declarative)
+**Evaluation Criteria**: TypeScript support, animation capabilities, model format support, performance
+**Resolution Method**: Prototype basic avatar animation with each framework
 
----
+#### Decision 2: Audio Processing Architecture
+**Options**: Web Audio API only, Node.js hybrid, WebAssembly acceleration
+**Evaluation Criteria**: Latency, cross-platform compatibility, development complexity
+**Resolution Method**: Benchmark LPC processing performance across approaches
 
-### Phase 3: 3D Framework Selection & Basic Rendering (Weeks 5-6)
-**Priority: MEDIUM - Visual output system**
+#### Decision 3: Model Format Strategy
+**Current State**: Collada (.dae) files with embedded textures
+**Options**: Convert to GLTF, maintain DAE support, support multiple formats
+**Resolution Method**: Analyze existing model files and test conversion pipelines
 
-#### 3D Framework Options:
+## Executable Tasks
 
-##### Option A: Three.js
-**Pros:**
-- Lightweight and widely adopted
-- Excellent performance
-- Large community and resources
-- Good for simple model display
+### Task Group 1: Neural Network Migration
+```typescript
+// Target: Exact algorithmic replication of ActionScript neural network
 
-**Cons:**
-- Requires additional libraries for physics/animation
-- Less out-of-the-box functionality
+TASK: Migrate NeuralNetwork class
+- Analyze existing network architecture from NeuralNetwork.as:216
+- Port backpropagation algorithm maintaining floating-point precision  
+- Implement save/load functionality compatible with existing ByteArray format
+- Validate: Network produces identical outputs for identical inputs
 
-##### Option B: Babylon.js  
-**Pros:**
-- Native TypeScript implementation
-- Built-in animation system
-- Comprehensive feature set
-- Better documentation for complex 3D apps
+TASK: Migrate Neuron class  
+- Port activation function and weight adjustment logic from Neuron.as
+- Maintain momentum calculation accuracy
+- Implement bias handling identical to ActionScript version
+- Validate: Individual neuron calculations match reference implementation
 
-**Cons:**
-- Larger bundle size
-- More complex for simple use cases
-
-##### Option C: A-Frame (Declarative)
-**Pros:**
-- HTML-based 3D scenes
-- VR/AR ready
-- Easy integration
-
-**Cons:**
-- Less programmatic control
-- May not suit complex animation needs
-
-#### **Recommended Choice: Babylon.js**
-- Native TypeScript support aligns with migration goals
-- Built-in animation system matches current avatar animation needs
-- Better suited for complex facial animation requirements
-
-#### Tasks:
-- [ ] Set up basic Babylon.js scene
-- [ ] Implement GLTF/DAE model loading (research format conversion)
-- [ ] Create basic avatar container and bone structure
-- [ ] Test model loading and basic transformations
-
-#### Model Format Uncertainty:
-- **Current**: Collada (.dae) files with Away3D
-- **Research needed**: GLTF conversion pipeline vs native DAE support
-- **Action**: Test both approaches, benchmark loading performance
-
----
-
-### Phase 4: Avatar Animation System (Weeks 7-8)
-**Priority: MEDIUM - Core visual functionality**
-
-#### Tasks:
-- [ ] Migrate `AvatarCore.as` to TypeScript
-- [ ] Implement facial feature controllers (eyes, mouth, neck)
-- [ ] Create bone-based animation system
-- [ ] Migrate expression and viseme systems
-- [ ] Implement blinking and eye movement
-
-#### Dependencies:
-- Chosen 3D framework from Phase 3
-- Animation library (built-in or external)
-
----
-
-### Phase 5: Training Interface & Data Management (Weeks 9-10)
-**Priority: LOW - Can use existing tools initially**
-
-#### Tasks:
-- [ ] Create web-based training interface (replace MXML)
-- [ ] Implement training workflow management
-- [ ] Add progress visualization
-- [ ] Create network export/import functionality
-
-#### Technology Stack:
-- React/Vue.js for UI
-- Chart.js for training visualization
-- File handling for network serialization
-
----
-
-### Phase 6: Integration & Testing (Weeks 11-12)
-**Priority: HIGH - System validation**
-
-#### Tasks:
-- [ ] Integrate all components
-- [ ] End-to-end testing with sample audio
-- [ ] Performance optimization
-- [ ] Cross-browser compatibility testing
-- [ ] Documentation and deployment setup
-
----
-
-## Technical Specifications
-
-### Target Environment
-- **Runtime**: Node.js 18+ for training, Modern browsers for display
-- **Package Manager**: npm/yarn
-- **Build System**: Vite or Webpack
-- **Testing**: Jest + @testing-library
-- **Bundling**: Support for both web and Node.js environments
-
-### Project Structure
-```
-new-ts-project/
-├── src/
-│   ├── core/
-│   │   ├── neural-network/     # Phase 1
-│   │   ├── audio-processing/   # Phase 2
-│   │   └── lpc/               # Phase 2
-│   ├── avatar/
-│   │   ├── animation/         # Phase 4
-│   │   ├── expressions/       # Phase 4
-│   │   └── rendering/         # Phase 3
-│   ├── training/              # Phase 5
-│   └── utils/
-├── tests/
-├── assets/
-│   ├── models/
-│   ├── textures/
-│   └── audio-samples/
-└── docs/
+TASK: Create network serialization
+- Replace ByteArray with Buffer/JSON while maintaining data compatibility
+- Support loading existing .network files from ActionScript version
+- Implement compression equivalent to ActionScript's ByteArray.compress()
+- Validate: Serialized networks load correctly in both systems
 ```
 
-## Migration Principles
+### Task Group 2: Audio Processing Migration
+```typescript
+// Target: Preserve LPC analysis accuracy and performance
 
-### 1. Test-Driven Development
-- Write comprehensive tests before migration
-- Validate against existing ActionScript behavior  
-- Maintain algorithm accuracy
+TASK: Migrate Linear Prediction Coding
+- Port LP.analyze() function from LP.as:115-125 maintaining coefficient accuracy
+- Implement Hamming window generation from LP.as:17-25
+- Port autocorrelation calculation from LP.as:29-68
+- Validate: LPC coefficients match ActionScript output within floating-point precision
 
-### 2. Incremental Migration
-- Each phase delivers working functionality
-- Phases can be developed in parallel where dependencies allow
-- Regular integration testing
+TASK: Implement audio pipeline
+- Create audio buffer management for 30ms windows
+- Support both file-based and real-time audio processing
+- Implement decimation and windowing as specified in LipsyncSettings
+- Validate: Feature extraction produces consistent results across audio sources
 
-### 3. Performance Preservation
-- Benchmark each component against ActionScript version
-- Optimize for target deployment scenarios
-- Consider WebAssembly for compute-intensive operations if needed
+TASK: Port phoneme mapping
+- Migrate viseme classification from Phoneme.as:8-27
+- Maintain exact viseme ID mapping for neural network compatibility
+- Implement phoneme collections and lookup functionality
+- Validate: Phoneme mappings produce identical viseme classifications
+```
 
-### 4. Modern Best Practices
-- TypeScript strict mode
-- Comprehensive error handling
-- Async/await for audio processing
-- Proper memory management
+### Task Group 3: 3D Framework Evaluation
+```typescript
+// Target: Select optimal framework through systematic comparison
 
-## Risk Mitigation
+TASK: Prototype with Babylon.js
+- Create basic scene with camera and lighting
+- Load sample 3D model (research DAE vs GLTF conversion)
+- Implement basic bone manipulation for facial animation
+- Measure: Loading performance, animation smoothness, bundle size
 
-### High-Risk Areas:
-1. **Neural Network Accuracy**: Floating-point precision differences
-2. **Audio Processing Latency**: Web Audio API vs Flash performance
-3. **3D Model Compatibility**: Format conversion and bone mapping
-4. **Real-time Performance**: JavaScript vs ActionScript execution speed
+TASK: Prototype with Three.js  
+- Create equivalent scene setup
+- Test model loading capabilities and format support
+- Implement basic facial bone controls
+- Measure: Performance comparison, development complexity, feature completeness
 
-### Mitigation Strategies:
-1. **Extensive Testing**: Unit tests with known input/output pairs
-2. **Performance Monitoring**: Benchmark at each phase
-3. **Fallback Options**: Keep ActionScript version as reference
-4. **Incremental Deployment**: Phase-by-phase rollout
+TASK: Comparative analysis
+- Document API differences and TypeScript support quality
+- Analyze animation system capabilities for facial expression control
+- Evaluate community support and documentation quality
+- Decision: Select framework based on objective criteria matrix
+```
 
-## Success Metrics
+### Task Group 4: Avatar Animation System
+```typescript
+// Target: Replicate AvatarCore.as functionality in chosen 3D framework
 
-### Phase 1 Success Criteria:
-- [ ] Neural network produces identical results to ActionScript version
-- [ ] Training converges to same MSE values
-- [ ] Network serialization preserves all state
-- [ ] Performance within 20% of original
+TASK: Migrate AvatarCore
+- Port avatar initialization and management from AvatarCore.as:34-51
+- Implement setViseme() function maintaining expression blending logic
+- Create eye blinking system replicating timer-based behavior
+- Validate: Avatar responds to viseme commands identically to ActionScript version
 
-### Final Success Criteria:
-- [ ] Complete audio-to-animation pipeline functional
-- [ ] Real-time processing maintains acceptable frame rates
-- [ ] Cross-browser compatibility achieved
-- [ ] Training interface allows network creation and modification
-- [ ] Documentation enables future development
+TASK: Implement facial feature controllers
+- Port AvatarEye, AvatarMouth, AvatarNeck functionality
+- Maintain bone transformation mathematics from original implementation  
+- Implement lookAt() functionality for eye and neck movement
+- Validate: Facial animations match reference system behavior
 
-## Timeline Summary
+TASK: Create expression system
+- Port AvatarExpression and ExpressionsCollection classes
+- Implement expression blending and interpolation
+- Support emotion and viseme combination as in original system
+- Validate: Expression transitions are smooth and mathematically equivalent
+```
 
-| Phase | Duration | Priority | Dependencies |
-|-------|----------|----------|--------------|
-| 1. Neural Network | 2 weeks | HIGH | None |
-| 2. Audio Processing | 2 weeks | HIGH | Phase 1 |
-| 3. 3D Framework | 2 weeks | MEDIUM | None |
-| 4. Avatar Animation | 2 weeks | MEDIUM | Phase 3 |
-| 5. Training Interface | 2 weeks | LOW | Phase 1, 2 |
-| 6. Integration | 2 weeks | HIGH | All phases |
+## Acceptance Criteria
 
-**Total Estimated Duration: 12 weeks**
+### System-Level Validation
+- **Input**: Audio file used in original ActionScript system
+- **Expected Output**: Identical viseme sequence and timing
+- **Verification Method**: Frame-by-frame comparison of avatar animation
 
-## Next Steps
+### Performance Benchmarks
+- **Neural Network**: Classification speed within 10% of ActionScript performance
+- **Audio Processing**: Real-time capability with <50ms latency for 30ms windows  
+- **3D Rendering**: Maintain 30fps with complex facial animations
 
-1. **Immediate**: Begin Phase 1 neural network migration
-2. **Week 2**: Research audio processing libraries and Web Audio API
-3. **Week 3**: Set up 3D framework evaluation environment
-4. **Week 4**: Create detailed technical specifications for Phase 2
+### Compatibility Requirements
+- **Model Support**: Successfully load and animate existing avatar models
+- **Network Support**: Import and use existing trained neural networks
+- **Audio Support**: Process same audio formats as ActionScript version
 
 ---
 
-*This plan will be updated as migration progresses and new requirements or challenges are discovered.*
+*This specification defines the exact requirements for AI-driven migration. Each task is independently executable with clear validation criteria.*
