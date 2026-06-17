@@ -14,7 +14,8 @@ import { Avatar3D } from './avatar3d/avatar';
 import { AvatarExpression, ExpressionsCollection } from './avatar3d/expression';
 import { forwardPass, createNetworkFromJson, parseNetworkJson } from './core/nn';
 import type { SerializedNetwork, NeuralNetworkState } from './core/nn';
-import { LipsyncPlayer, preparePhonemeBuffer, STEP_SAMPLES } from './player/player';
+import { LipsyncPlayer, preparePhonemeBuffer, STEP_SAMPLES, recognizePhoneme } from './player/player';
+import { SAMPLES_PER_WINDOW } from './player/audio';
 import type { Phoneme } from './player/player';
 
 // ──────────────────────────────────────────────────────────
@@ -39,6 +40,13 @@ let fpsLastTime = 0;
 let isPlaying = false;
 let gazeActive = false;
 let gazeTime = 0;
+
+// Mic / streaming state
+let micStream: MediaStream | null = null;
+let micWorkletNode: AudioWorkletNode | null = null;
+let micAudioCtx: AudioContext | null = null;
+let streamingProcessor: StreamingProcessor | null = null;
+let micActive = false;
 
 let audioCtx: AudioContext;
 
@@ -159,6 +167,65 @@ function setViseme(phoneme: Phoneme): void {
 }
 
 // ──────────────────────────────────────────────────────────
+//  Streaming Processor — mic → LPC → NN → phoneme pipeline
+// ──────────────────────────────────────────────────────────
+
+/**
+ * Accumulates incoming mic audio chunks and runs the phoneme
+ * recognition pipeline every STEP_SAMPLES (882) samples.
+ */
+class StreamingProcessor {
+  private buffer: Float32Array = new Float32Array(0);
+  private nextPosition: number = STEP_SAMPLES;
+  private network: { run(input: number[]): number[] };
+  private onPhoneme: (phoneme: Phoneme) => void;
+  private onEnergy: (energy: number) => void;
+
+  constructor(opts: {
+    network: { run(input: number[]): number[] };
+    onPhoneme: (phoneme: Phoneme) => void;
+    onEnergy: (energy: number) => void;
+  }) {
+    this.network = opts.network;
+    this.onPhoneme = opts.onPhoneme;
+    this.onEnergy = opts.onEnergy;
+  }
+
+  /**
+   * Feed a new PCM chunk (from AudioWorklet) into the processor.
+   * Runs recognition on all complete windows that can be formed.
+   */
+  feed(chunk: Float32Array): void {
+    // Append incoming chunk to the rolling buffer
+    const newBuf = new Float32Array(this.buffer.length + chunk.length);
+    newBuf.set(this.buffer);
+    newBuf.set(chunk, this.buffer.length);
+    this.buffer = newBuf;
+
+    // Process every complete window we have data for
+    while (this.nextPosition + SAMPLES_PER_WINDOW <= this.buffer.length) {
+      const item = recognizePhoneme(this.buffer, this.nextPosition, this.network);
+      this.onPhoneme(item.phoneme);
+      this.onEnergy(item.energy);
+      this.nextPosition += STEP_SAMPLES;
+    }
+
+    // Trim old data to prevent unbounded growth
+    const keep = Math.max(0, this.nextPosition - STEP_SAMPLES * 4);
+    if (keep > 0) {
+      this.buffer = this.buffer.slice(keep);
+      this.nextPosition -= keep;
+    }
+  }
+
+  /** Reset internal state (e.g. on mic stop). */
+  reset(): void {
+    this.buffer = new Float32Array(0);
+    this.nextPosition = STEP_SAMPLES;
+  }
+}
+
+// ──────────────────────────────────────────────────────────
 //  Audio playback
 // ──────────────────────────────────────────────────────────
 
@@ -243,6 +310,173 @@ function resetAvatar(): void {
 }
 
 // ──────────────────────────────────────────────────────────
+//  Microphone capture
+// ──────────────────────────────────────────────────────────
+
+function showMicError(msg: string): void {
+  const display = document.getElementById('mic-energy')!;
+  display.textContent = 'ERR';
+  display.style.color = '#e74c3c';
+  console.warn('[mic]', msg);
+}
+
+async function startMic(): Promise<void> {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showMicError('getUserMedia not available');
+    return;
+  }
+
+  if (!networkRun) {
+    showMicError('NN not loaded yet');
+    return;
+  }
+
+  try {
+    // 1. Get mic stream (mono)
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1 },
+    });
+    micStream = stream;
+
+    // 2. Create dedicated AudioContext for mic pipeline
+    const ctx = new AudioContext();
+    micAudioCtx = ctx;
+
+    // 3. Load the AudioWorklet processor
+    await ctx.audioWorklet.addModule('/audio-processor.js');
+
+    // 4. Create source + worklet node
+    const source = ctx.createMediaStreamSource(stream);
+    const workletNode = new AudioWorkletNode(ctx, 'mic-pipeline-processor');
+    micWorkletNode = workletNode;
+
+    // 5. Create streaming processor for phoneme recognition
+    streamingProcessor = new StreamingProcessor({
+      network: { run: networkRun },
+      onPhoneme(phoneme: Phoneme): void {
+        setViseme(phoneme);
+      },
+      onEnergy(energy: number): void {
+        const display = document.getElementById('mic-energy');
+        if (!display) return;
+        // Show energy value with VAD-based colouring
+        display.textContent = energy.toFixed(4);
+        display.style.color = energy >= 0.025 ? '#53d769' : '#888';
+      },
+    });
+
+    // 6. Listen for audio_chunk messages from the worklet
+    workletNode.port.onmessage = (event: MessageEvent) => {
+      if (!streamingProcessor) return;
+      const msg = event.data;
+      if (msg && msg.type === 'audio_chunk') {
+        const chunk = new Float32Array(msg.samples);
+        streamingProcessor.feed(chunk);
+
+        // Also update the RMS display from the worklet's measurement
+        const rmsDisplay = document.getElementById('mic-energy');
+        if (rmsDisplay && msg.rms !== undefined) {
+          rmsDisplay.textContent = msg.rms.toFixed(4);
+          rmsDisplay.style.color = msg.rms >= 0.025 ? '#53d769' : '#888';
+        }
+      }
+    };
+
+    // 7. Connect audio graph
+    source.connect(workletNode);
+    // No need to connect to destination — we only need the data stream
+
+    // 8. Update UI
+    micActive = true;
+    const micBtn = document.getElementById('btn-mic')!;
+    micBtn.classList.add('active');
+    micBtn.textContent = '🎤 ●';
+
+    const indicator = document.getElementById('status-indicator')!;
+    indicator.textContent = '● MIC ON';
+    indicator.style.color = '#e74c3c';
+
+    // Disable audio test buttons while mic is active
+    document.querySelectorAll('[data-audio]').forEach((btn) => {
+      (btn as HTMLButtonElement).disabled = true;
+      btn.classList.add('muted');
+    });
+
+    console.log('[mic] Started successfully');
+  } catch (err: any) {
+    showMicError(String(err?.message ?? err));
+    // Clean up partial state
+    if (micStream) {
+      micStream.getTracks().forEach((t) => t.stop());
+      micStream = null;
+    }
+    if (micAudioCtx) {
+      micAudioCtx.close();
+      micAudioCtx = null;
+    }
+    micWorkletNode = null;
+    streamingProcessor = null;
+    micActive = false;
+  }
+}
+
+function stopMic(): void {
+  // Stop the media stream
+  if (micStream) {
+    micStream.getTracks().forEach((t) => t.stop());
+    micStream = null;
+  }
+
+  // Disconnect worklet
+  if (micWorkletNode) {
+    micWorkletNode.disconnect();
+    micWorkletNode = null;
+  }
+
+  // Close the mic AudioContext
+  if (micAudioCtx) {
+    micAudioCtx.close();
+    micAudioCtx = null;
+  }
+
+  // Reset streaming processor
+  if (streamingProcessor) {
+    streamingProcessor.reset();
+    streamingProcessor = null;
+  }
+
+  micActive = false;
+
+  // Reset UI
+  const micBtn = document.getElementById('btn-mic');
+  if (micBtn) {
+    micBtn.classList.remove('active');
+    micBtn.textContent = '🎤';
+  }
+
+  const display = document.getElementById('mic-energy');
+  if (display) {
+    display.textContent = '-';
+    display.style.color = '';
+  }
+
+  // Re-enable audio test buttons
+  document.querySelectorAll('[data-audio]').forEach((btn) => {
+    (btn as HTMLButtonElement).disabled = false;
+    btn.classList.remove('muted');
+  });
+
+  // Restore status indicator if not playing test audio
+  if (!isPlaying) {
+    const indicator = document.getElementById('status-indicator')!;
+    indicator.textContent = '● READY';
+    indicator.style.color = '#53d769';
+  }
+
+  console.log('[mic] Stopped');
+}
+
+// ──────────────────────────────────────────────────────────
 //  FPS counter & UI tick
 // ──────────────────────────────────────────────────────────
 
@@ -310,6 +544,15 @@ function setupUI(): void {
 
   // Reset
   document.getElementById('btn-reset')!.addEventListener('click', resetAvatar);
+
+  // Mic toggle
+  document.getElementById('btn-mic')!.addEventListener('click', () => {
+    if (micActive) {
+      stopMic();
+    } else {
+      startMic();
+    }
+  });
 
   // Resize
   window.addEventListener('resize', handleResize);

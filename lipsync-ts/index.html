@@ -117,6 +117,28 @@
       background: var(--red);
       border-color: var(--red);
     }
+
+    /* ── Mic button ── */
+    .btn.mic-btn {
+      background: #2a2a4a;
+      border-color: #3a3a5a;
+      font-size: 16px;
+      padding: 5px 12px;
+    }
+    .btn.mic-btn.active {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+      animation: mic-pulse 1.2s ease-in-out infinite;
+    }
+    .btn.mic-btn.muted {
+      opacity: 0.5;
+    }
+    @keyframes mic-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+      50%      { box-shadow: 0 0 0 6px rgba(231, 76, 60, 0); }
+    }
+
     .separator {
       width: 1px;
       height: 20px;
@@ -193,6 +215,8 @@
       <button class="btn audio-btn small" data-audio="lipsync">lipsync</button>
       <button class="btn audio-btn small" data-audio="speech">speech</button>
       <div class="separator"></div>
+      <label>MIC</label>
+      <button class="btn mic-btn" id="btn-mic">🎤</button>
       <button class="btn small" id="btn-demo-gaze">☰ gaze</button>
       <button class="btn small" id="btn-blink">◉ blink</button>
       <div class="spacer"></div>
@@ -210,6 +234,7 @@
       <span>Viseme: <span class="val" id="viseme-display">neutral</span></span>
       <span>Blink: <span class="val" id="blink-display">-</span></span>
       <span>Sex: <span class="val" id="sex-display">♂</span></span>
+      <span>Mic: <span class="val" id="mic-energy">-</span></span>
     </div>
   </div>
 
