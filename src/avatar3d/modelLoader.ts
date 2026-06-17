@@ -21,6 +21,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import type { AvatarFeature } from './expression';
 
+/** Vite base path — resolves to '/' in dev, '/LipSync/' on GitHub Pages. */
+const BASE_URL: string = (import.meta as any).env?.BASE_URL ?? '/';
+
 /**
  * Configuration for model loading.
  */
@@ -34,7 +37,7 @@ export interface ModelLoadConfig {
 }
 
 const DEFAULT_CONFIG: Required<ModelLoadConfig> = {
-  modelPath: '/models/facecap.glb',
+  modelPath: `${BASE_URL}models/facecap.glb`,
   scale: 10,
   positionY: -3,
 };
@@ -118,7 +121,7 @@ export function loadModel(
   // Set up KTX2 texture loader if renderer is available
   if (renderer) {
     const ktx2Loader = new KTX2Loader()
-      .setTranscoderPath('/basis/')
+      .setTranscoderPath(`${BASE_URL}basis/`)
       .detectSupport(renderer);
     loader.setKTX2Loader(ktx2Loader);
   }
