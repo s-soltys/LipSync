@@ -19,7 +19,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
-import type { AvatarFeature } from './expression';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 /** Vite base path — resolves to '/' in dev, '/LipSync/' on GitHub Pages. */
 const BASE_URL: string = (import.meta as any).env?.BASE_URL ?? '/';
@@ -117,6 +117,9 @@ export function loadModel(
 ): Promise<LoadedModel> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const loader = new GLTFLoader();
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath(`${BASE_URL}draco/`);
+  loader.setDRACOLoader(dracoLoader);
 
   // Set up KTX2 texture loader if renderer is available
   if (renderer) {
@@ -382,19 +385,4 @@ export function applyVisemeMorphs(
   }
 }
 
-/**
- * Apply blink morph to all meshes with morph targets.
- */
-export function applyBlinkMorph(
-  meshes: THREE.Mesh[],
-  morphTargets: MorphTargetMap,
-  closed: boolean,
-): void {
-  if (!meshes || meshes.length === 0) return;
-  const w = closed ? 1.0 : 0.0;
-  for (const mesh of meshes) {
-    if (!mesh) continue;
-    setMorphWeight(mesh, morphTargets, 'eyeBlinkLeft', w);
-    setMorphWeight(mesh, morphTargets, 'eyeBlinkRight', w);
-  }
-}
+

@@ -234,6 +234,23 @@ export class LipsyncPlayer {
   }
 
   /**
+   * Unregister a previously registered callback.
+   *
+   * If the callback was not registered or the event type has no listeners,
+   * this is a no-op.
+   *
+   * @param type     - Event type the callback was registered for.
+   * @param callback - The exact function reference to remove.
+   */
+  off(type: LipsyncEventType, callback: LipsyncCallback): void {
+    const existing = this.callbacks.get(type);
+    if (existing) {
+      const idx = existing.indexOf(callback);
+      if (idx !== -1) existing.splice(idx, 1);
+    }
+  }
+
+  /**
    * Emit an event to all registered callbacks.
    *
    * @param type      - Event type.

@@ -1,11 +1,21 @@
 # LipSync — Real-Time 3D Facial Animation from Audio
 
-![build](https://img.shields.io/badge/build-passing-brightgreen)
-![license](https://img.shields.io/badge/license-Unlicense-blue)
+![Build](https://img.shields.io/github/actions/workflow/status/s-soltys/LipSync/ci.yml?branch=master)
+![License](https://img.shields.io/github/license/s-soltys/LipSync)
+
+> **Project Status**: Active development. The TypeScript rewrite is feature-complete with 204 passing tests. The original AS3 source is preserved under `/reference/as3/` for historical reference.
 
 LipSync generates real-time 3D facial animations from speech audio. It performs **LPC (Linear Predictive Coding) analysis** on 44.1 kHz audio, classifies the resulting feature vectors through a **neural network** into viseme categories, and drives **morph targets** on a 3D avatar.
 
 Originally authored in 2011 as an **ActionScript 3 / Away3D / Flex** application, this repository is the **modern TypeScript rewrite** using **Three.js** and **Vite**.
+
+---
+
+## Prerequisites
+
+- **Node.js** >= 20.0.0
+- **npm** (included with Node.js)
+- A modern browser (see [Browser Support](#browser-support))
 
 ---
 
@@ -81,8 +91,7 @@ LipSync/
 │   │   └── phoneme.ts            # Phoneme data model, encoding/decoding
 │   ├── player/
 │   │   ├── player.ts             # LipsyncPlayer — pipeline orchestrator
-│   │   ├── audio.ts              # Audio extraction, decimation, VAD
-│   │   └── streamingProcessor.ts # Real-time ring-buffer streaming processor
+│   │   └── audio.ts              # Audio extraction, decimation, VAD
 │   ├── avatar3d/
 │   │   ├── avatar.ts             # Avatar3D — scene, camera, render loop
 │   │   ├── modelLoader.ts        # GLTF/GLB loader, morph target binding
@@ -156,7 +165,17 @@ npm run build
 npx serve dist -l 30925
 ```
 
-The Vite config includes `allowedHosts` for `lipsync-app.szymon-ai.cc` and copies `ground-truth/` into the build output via a custom plugin.
+The Vite config sets `base` to `/LipSync/` for the production build and copies `ground-truth/` into the build output via a custom plugin.
+
+---
+
+## Browser Support
+
+LipSync targets **ES2022** modern browsers. The application uses:
+
+- **AudioWorklet** API for microphone capture (Chrome 64+, Firefox 76+, Safari 14.1+)
+- **WebGL 2.0** for 3D rendering
+- **ES modules** (no legacy bundling)
 
 ---
 

@@ -45,6 +45,13 @@ export class Avatar3D {
   loadedModel: LoadedModel | null = null;
   private _modelLoaded: boolean = false;
 
+  // Dirty tracking for morph updates
+  private _lastVisemeId: number = -1;
+  private _lastIntensity: number = -1;
+
+  // rAF handle for dispose
+  private _rafId: number = 0;
+
   // Camera preset cycling
   private cameraPresets: Array<{pos: [number,number,number]; target: [number,number,number]; fov: number; label: string}> = [
     { pos: [0, 12, 15], target: [0, 10, 0], fov: 60, label: 'Standard' },
@@ -100,7 +107,6 @@ export class Avatar3D {
   private initRenderer(): void {
     if (this.renderer) return;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(1);
   }
 
   /**
@@ -138,9 +144,9 @@ export class Avatar3D {
       this._lastTime = now;
       this.update(dt);
       this.getRenderer().render(this.scene, this.camera);
-      requestAnimationFrame(loop);
+      this._rafId = requestAnimationFrame(loop);
     };
-    requestAnimationFrame(loop);
+    this._rafId = requestAnimationFrame(loop);
   }
 
   /**
@@ -224,12 +230,20 @@ export class Avatar3D {
       const visemeId = this._viseme.id;
       const intensity = this._visemeValue || 0;
 
-      // Apply viseme morphs from current expression state
-      const morphMeshes = lm.morphMeshes.length > 0 ? lm.morphMeshes : [lm.headMesh].filter(Boolean) as THREE.Mesh[];
-      if (visemeId > 0 || intensity > 0) {
-        applyVisemeMorphs(morphMeshes, lm.morphTargets, visemeId, intensity);
+      // Dirty tracking — skip if viseme and intensity haven't changed
+      if (visemeId === this._lastVisemeId && intensity === this._lastIntensity) {
+        // Skip morph updates this frame
       } else {
-        applyVisemeMorphs(morphMeshes, lm.morphTargets, 0, 0);
+        this._lastVisemeId = visemeId;
+        this._lastIntensity = intensity;
+
+        // Apply viseme morphs from current expression state
+        const morphMeshes = lm.morphMeshes.length > 0 ? lm.morphMeshes : [lm.headMesh].filter(Boolean) as THREE.Mesh[];
+        if (visemeId > 0 || intensity > 0) {
+          applyVisemeMorphs(morphMeshes, lm.morphTargets, visemeId, intensity);
+        } else {
+          applyVisemeMorphs(morphMeshes, lm.morphTargets, 0, 0);
+        }
       }
     }
   }
@@ -239,7 +253,9 @@ export class Avatar3D {
     const preset = this.cameraPresets[this._currentPreset];
     this._targetPos.set(preset.pos[0], preset.pos[1], preset.pos[2]);
     this._targetTarget.set(preset.target[0], preset.target[1], preset.target[2]);
-    this._currentTarget.copy(this._targetTarget);
+    // Start look-at transition from current camera direction, not new target
+    const dist = this.camera.position.distanceTo(this._targetTarget);
+    this._currentTarget.copy(this.camera.position).add(this.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(dist));
     this._targetFov = preset.fov;
     this._cameraLerping = true;
     return preset.label;
@@ -256,6 +272,30 @@ export class Avatar3D {
    */
   stop(): void {
     this._running = false;
+  }
+
+  /**
+   * Dispose of all Three.js resources. Cancels the rAF loop,
+   * disposes the renderer, and removes the canvas from the DOM.
+   * Call this on HMR or component unmount to prevent memory leaks.
+   */
+  dispose(): void {
+    this._running = false;
+    if (this._rafId) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = 0;
+    }
+    if (this.renderer) {
+      this.renderer.dispose();
+      if (this.renderer.domElement && this.renderer.domElement.parentElement) {
+        this.renderer.domElement.parentElement.removeChild(this.renderer.domElement);
+      }
+      this.renderer = null as unknown as THREE.WebGLRenderer;
+    }
+    // Remove loaded model from scene
+    if (this.loadedModel) {
+      this.scene.remove(this.loadedModel.group);
+    }
   }
 
   /**

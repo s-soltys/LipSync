@@ -1,4 +1,4 @@
-# LipSync — Agents Guide
+# LipSync — Architecture Reference
 
 ## Overview
 
@@ -72,19 +72,21 @@ The system supports both **RPM naming** (e.g., `mouthSmileLeft`) and **ARKit nam
 - **AudioWorklet** (`/public/audio-processor.js`) captures mic input
 - **Ring buffer** (1676 samples = 794 window + 882 step) handles chunk boundaries
 - **VAD threshold**: 0.025 (energy-based)
-- **StreamingProcessor** (`/src/player/streamingProcessor.ts`) runs LPC+NN on every 20ms chunk
-- Bypasses `LipsyncPlayer` class — direct pipeline for real-time use
+- The pipeline bypasses `LipsyncPlayer` — direct processing via the inline `StreamingProcessor` in `src/main.ts`
+- Each 20ms chunk runs LPC+NN through `recognizePhoneme()` which handles VAD and decimation correctly
 
 ## Deployment
 
-Production at: **https://lipsync-app.szymon-ai.cc**
+The app is automatically deployed to **GitHub Pages** on pushes to `master` via GitHub Actions:
+
+**https://s-soltys.github.io/LipSync/**
 
 ```bash
 npm run build
 npx serve dist -l 30925
 ```
 
-The Vite config includes `allowedHosts` for `lipsync-app.szymon-ai.cc` and a `closeBundle` plugin that copies `ground-truth/` into `dist/`.
+The Vite config sets `base` to `/LipSync/` for the production build.
 
 ## Reference Files
 

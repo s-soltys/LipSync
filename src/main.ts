@@ -154,7 +154,7 @@ function generateTestAudio(type: string, duration = 1.5): Float32Array {
 //  Viseme dispatch
 // ──────────────────────────────────────────────────────────
 
-function setViseme(phoneme: Phoneme): void {
+function setViseme(phoneme: Phoneme, amplitude?: number): void {
   const visemeId = phoneme.visemeId;
   document.getElementById('viseme-display')!.textContent = phoneme.alias;
 
@@ -163,10 +163,19 @@ function setViseme(phoneme: Phoneme): void {
     return;
   }
 
-  // Map viseme ID to expression and intensity for morph target driving
-  const intensity = visemeId / 9;
+  // Map viseme ID to expression and intensity for morph target driving.
+  // Use audio amplitude/energy when available for dynamic intensity,
+  // fall back to a viseme-based formula.
+  let intensity: number;
+  if (amplitude !== undefined) {
+    // Scale amplitude to a reasonable morph target range, cap at 1.0
+    intensity = Math.min(amplitude * 2.5, 1.0);
+  } else {
+    // Fallback: linearly map visemeId (1-9) to 0.15-1.0
+    intensity = 0.15 + (visemeId / 9) * 0.85;
+  }
   const visemeExpr = ExpressionsCollection.getVisemeById(visemeId);
-  avatar.setViseme(visemeExpr, intensity * 0.6);
+  avatar.setViseme(visemeExpr, intensity);
 }
 
 // ──────────────────────────────────────────────────────────
@@ -230,8 +239,8 @@ class StreamingProcessor {
       }
 
       const item = recognizePhoneme(window, 0, this.network);
-      this.onPhoneme(item.phoneme);
       this.onEnergy(item.energy);
+      this.onPhoneme(item.phoneme);
       this.nextPosition += STEP_SAMPLES;
     }
   }
@@ -294,7 +303,7 @@ async function playTestAudio(type: string): Promise<void> {
       // First phoneme fires at ~20 ms (position STEP_SAMPLES),
       // second at ~40 ms, etc.
       setTimeout(() => {
-        setViseme(item.phoneme);
+        setViseme(item.phoneme, item.energy);
       }, (i + 1) * stepMs);
     }
 
@@ -373,12 +382,14 @@ async function startMic(): Promise<void> {
     micWorkletNode = workletNode;
 
     // 5. Create streaming processor for phoneme recognition
+    let lastMicEnergy = 0;
     streamingProcessor = new StreamingProcessor({
       network: { run: networkRun },
       onPhoneme(phoneme: Phoneme): void {
-        setViseme(phoneme);
+        setViseme(phoneme, lastMicEnergy);
       },
       onEnergy(energy: number): void {
+        lastMicEnergy = energy;
         const display = document.getElementById('mic-energy');
         if (!display) return;
         // Show energy value with VAD-based colouring
@@ -442,8 +453,9 @@ function stopMic(): void {
     micStream = null;
   }
 
-  // Disconnect worklet
+  // Disconnect worklet and clear its port message handler
   if (micWorkletNode) {
+    micWorkletNode.port.onmessage = null;
     micWorkletNode.disconnect();
     micWorkletNode = null;
   }
