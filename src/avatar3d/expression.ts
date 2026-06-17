@@ -346,14 +346,8 @@ export class ExpressionsCollection {
   /** Registered visemes (populated by initCollection). */
   static visemes: AvatarExpression[] = [];
 
-  // 7 emotion singletons (§8.2)
+  // 1 emotion singleton (§8.2)
   static NEUTRAL: AvatarExpression = new AvatarExpression(0, 'neutral');
-  static JOY: AvatarExpression = new AvatarExpression(1, 'joy');
-  static SADNESS: AvatarExpression = new AvatarExpression(2, 'sadness');
-  static ANGER: AvatarExpression = new AvatarExpression(3, 'anger');
-  static FEAR: AvatarExpression = new AvatarExpression(4, 'fear');
-  static DISGUST: AvatarExpression = new AvatarExpression(5, 'disgust');
-  static SURPRISE: AvatarExpression = new AvatarExpression(6, 'surprise');
 
   /**
    * Find a viseme by its alias string (e.g., "v1", "U").
@@ -369,17 +363,6 @@ export class ExpressionsCollection {
    */
   static getVisemeById(id: number): AvatarExpression {
     return this.visemes.find(v => v.id === id) ?? this.NEUTRAL;
-  }
-
-  /**
-   * [NOT IMPLEMENTED] Combine a viseme and emotion into a blended expression.
-   * Stub in source — returns null per §9.1.
-   */
-  static combine(
-    _viseme: AvatarExpression,
-    _emotion: AvatarExpression,
-  ): AvatarExpression | null {
-    return null;
   }
 
   /**

@@ -494,55 +494,12 @@ describe('AvatarExpression', () => {
 // ─── ExpressionsCollection (§9) ─────────────────────────────
 
 describe('ExpressionsCollection', () => {
-  // ── 7 Emotion Singletons (§9.1) ─────────────────────────
+  // ── 1 Emotion Singleton (§8.2) ─────────────────────────
 
   it('should have NEUTRAL emotion with id=0 alias="neutral"', () => {
     expect(ExpressionsCollection.NEUTRAL).toBeInstanceOf(AvatarExpression);
     expect(ExpressionsCollection.NEUTRAL.id).toBe(0);
     expect(ExpressionsCollection.NEUTRAL.alias).toBe('neutral');
-  });
-
-  it('should have JOY emotion with id=1 alias="joy"', () => {
-    expect(ExpressionsCollection.JOY.id).toBe(1);
-    expect(ExpressionsCollection.JOY.alias).toBe('joy');
-  });
-
-  it('should have SADNESS emotion with id=2 alias="sadness"', () => {
-    expect(ExpressionsCollection.SADNESS.id).toBe(2);
-    expect(ExpressionsCollection.SADNESS.alias).toBe('sadness');
-  });
-
-  it('should have ANGER emotion with id=3 alias="anger"', () => {
-    expect(ExpressionsCollection.ANGER.id).toBe(3);
-    expect(ExpressionsCollection.ANGER.alias).toBe('anger');
-  });
-
-  it('should have FEAR emotion with id=4 alias="fear"', () => {
-    expect(ExpressionsCollection.FEAR.id).toBe(4);
-    expect(ExpressionsCollection.FEAR.alias).toBe('fear');
-  });
-
-  it('should have DISGUST emotion with id=5 alias="disgust"', () => {
-    expect(ExpressionsCollection.DISGUST.id).toBe(5);
-    expect(ExpressionsCollection.DISGUST.alias).toBe('disgust');
-  });
-
-  it('should have SURPRISE emotion with id=6 alias="surprise"', () => {
-    expect(ExpressionsCollection.SURPRISE.id).toBe(6);
-    expect(ExpressionsCollection.SURPRISE.alias).toBe('surprise');
-  });
-
-  it('should have all 7 emotions as distinct instances', () => {
-    const ids = [
-      ExpressionsCollection.NEUTRAL,
-      ExpressionsCollection.JOY,
-      ExpressionsCollection.SADNESS,
-      ExpressionsCollection.ANGER,
-      ExpressionsCollection.FEAR,
-      ExpressionsCollection.DISGUST,
-      ExpressionsCollection.SURPRISE,
-    ].map(e => e.id);
-    expect(new Set(ids).size).toBe(7);
   });
 
   // ── visemes registry ────────────────────────────────────
@@ -619,15 +576,5 @@ describe('ExpressionsCollection', () => {
     expect(found).toBe(ExpressionsCollection.NEUTRAL);
 
     ExpressionsCollection.visemes = original;
-  });
-
-  // ── combine (§9.1, stub) ────────────────────────────────
-
-  it('should return null from combine (stub, not implemented)', () => {
-    const result = ExpressionsCollection.combine(
-      ExpressionsCollection.NEUTRAL,
-      ExpressionsCollection.JOY,
-    );
-    expect(result).toBeNull();
   });
 });

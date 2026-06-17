@@ -131,7 +131,7 @@
       color: #fff;
       animation: mic-pulse 1.2s ease-in-out infinite;
     }
-    .btn.mic-btn.muted {
+    .btn.muted {
       opacity: 0.5;
     }
     @keyframes mic-pulse {
@@ -205,8 +205,6 @@
 
     <!-- Toolbar -->
     <div id="toolbar">
-      <label>AWATAR</label>
-      <button class="btn small" id="btn-sex-toggle" title="Toggle avatar sex">♀ / ♂</button>
       <div class="separator"></div>
       <label>TEST</label>
       <button class="btn audio-btn small" data-audio="aeiou">aeiou</button>
@@ -215,12 +213,12 @@
       <button class="btn audio-btn small" data-audio="lipsync">lipsync</button>
       <button class="btn audio-btn small" data-audio="speech">speech</button>
       <div class="separator"></div>
+      <label>CAM</label>
+      <button class="btn small" id="btn-cam">📷</button>
+      <div class="separator"></div>
       <label>MIC</label>
       <button class="btn mic-btn" id="btn-mic">🎤</button>
-      <button class="btn small" id="btn-demo-gaze">☰ gaze</button>
-      <button class="btn small" id="btn-blink">◉ blink</button>
       <div class="spacer"></div>
-      <button class="btn small" id="btn-reset">↺ reset</button>
     </div>
 
     <!-- 3D Viewport -->
@@ -232,8 +230,7 @@
     <div id="status-bar">
       <span>FPS: <span class="val" id="fps-display">0</span></span>
       <span>Viseme: <span class="val" id="viseme-display">neutral</span></span>
-      <span>Blink: <span class="val" id="blink-display">-</span></span>
-      <span>Sex: <span class="val" id="sex-display">♂</span></span>
+      <span>Cam: <span class="val" id="cam-display">Standard</span></span>
       <span>Mic: <span class="val" id="mic-energy">-</span></span>
     </div>
   </div>

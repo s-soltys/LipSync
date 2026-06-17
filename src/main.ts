@@ -38,8 +38,9 @@ let animFrameId = 0;
 let fpsCounter = 0;
 let fpsLastTime = 0;
 let isPlaying = false;
-let gazeActive = false;
-let gazeTime = 0;
+
+// Camera preset display
+const camDisplay = document.getElementById('cam-display')!;
 
 // Mic / streaming state
 let micStream: MediaStream | null = null;
@@ -50,7 +51,6 @@ let micActive = false;
 
 let audioCtx: AudioContext;
 
-const $ = (id: string): HTMLElement => document.getElementById(id)!;
 const container = document.getElementById('canvas-container')!;
 
 // ──────────────────────────────────────────────────────────
@@ -173,9 +173,16 @@ function setViseme(phoneme: Phoneme): void {
 /**
  * Accumulates incoming mic audio chunks and runs the phoneme
  * recognition pipeline every STEP_SAMPLES (882) samples.
+ *
+ * Uses a ring buffer (fixed-size Float32Array with modular write
+ * pointer) instead of a rolling buffer with slice trimming.
+ * Ring buffer size = SAMPLES_PER_WINDOW + STEP_SAMPLES (1676).
  */
 class StreamingProcessor {
-  private buffer: Float32Array = new Float32Array(0);
+  private ringBuffer: Float32Array;
+  private bufferSize: number;
+  private writePos: number = 0;
+  private totalWritten: number = 0;
   private nextPosition: number = STEP_SAMPLES;
   private network: { run(input: number[]): number[] };
   private onPhoneme: (phoneme: Phoneme) => void;
@@ -189,38 +196,47 @@ class StreamingProcessor {
     this.network = opts.network;
     this.onPhoneme = opts.onPhoneme;
     this.onEnergy = opts.onEnergy;
+    this.bufferSize = SAMPLES_PER_WINDOW + STEP_SAMPLES; // 794 + 882 = 1676
+    this.ringBuffer = new Float32Array(this.bufferSize);
   }
 
   /**
    * Feed a new PCM chunk (from AudioWorklet) into the processor.
-   * Runs recognition on all complete windows that can be formed.
+   * Writes samples into the ring buffer with a modular write pointer
+   * and runs recognition on all complete windows that can be formed.
    */
   feed(chunk: Float32Array): void {
-    // Append incoming chunk to the rolling buffer
-    const newBuf = new Float32Array(this.buffer.length + chunk.length);
-    newBuf.set(this.buffer);
-    newBuf.set(chunk, this.buffer.length);
-    this.buffer = newBuf;
+    // Write chunk into ring buffer with modular pointer
+    for (let i = 0; i < chunk.length; i++) {
+      this.ringBuffer[this.writePos] = chunk[i];
+      this.writePos = (this.writePos + 1) % this.bufferSize;
+    }
+    this.totalWritten += chunk.length;
 
     // Process every complete window we have data for
-    while (this.nextPosition + SAMPLES_PER_WINDOW <= this.buffer.length) {
-      const item = recognizePhoneme(this.buffer, this.nextPosition, this.network);
+    while (this.nextPosition + SAMPLES_PER_WINDOW <= this.totalWritten) {
+      // Extract contiguous window from ring buffer (handle wraparound)
+      const start = this.nextPosition % this.bufferSize;
+      const window = new Float32Array(SAMPLES_PER_WINDOW);
+      if (start + SAMPLES_PER_WINDOW <= this.bufferSize) {
+        window.set(this.ringBuffer.subarray(start, start + SAMPLES_PER_WINDOW));
+      } else {
+        const firstPart = this.bufferSize - start;
+        window.set(this.ringBuffer.subarray(start));
+        window.set(this.ringBuffer.subarray(0, SAMPLES_PER_WINDOW - firstPart), firstPart);
+      }
+
+      const item = recognizePhoneme(window, 0, this.network);
       this.onPhoneme(item.phoneme);
       this.onEnergy(item.energy);
       this.nextPosition += STEP_SAMPLES;
-    }
-
-    // Trim old data to prevent unbounded growth
-    const keep = Math.max(0, this.nextPosition - STEP_SAMPLES * 4);
-    if (keep > 0) {
-      this.buffer = this.buffer.slice(keep);
-      this.nextPosition -= keep;
     }
   }
 
   /** Reset internal state (e.g. on mic stop). */
   reset(): void {
-    this.buffer = new Float32Array(0);
+    this.writePos = 0;
+    this.totalWritten = 0;
     this.nextPosition = STEP_SAMPLES;
   }
 }
@@ -237,76 +253,70 @@ async function playTestAudio(type: string): Promise<void> {
   indicator.textContent = '● PLAYING';
   indicator.style.color = '#e74c3c';
 
-  // ── Try to use a real speech sample from cache ──────────
-  let audio: Float32Array;
-  let sampleRate = 44100;
+  try {
+    // ── Try to use a real speech sample from cache ──────────
+    let audio: Float32Array;
+    let sampleRate = 44100;
 
-  const cached = sampleCache.get(type);
-  if (cached) {
-    // Use real speech sample
-    audio = new Float32Array(cached.getChannelData(0));
-    sampleRate = cached.sampleRate;
-  } else {
-    // Fall back to synthetic audio
-    audio = generateTestAudio(type, 1.5);
-  }
+    const cached = sampleCache.get(type);
+    if (cached) {
+      // Use real speech sample
+      audio = new Float32Array(cached.getChannelData(0));
+      sampleRate = cached.sampleRate;
+    } else {
+      // Fall back to synthetic audio
+      audio = generateTestAudio(type, 1.5);
+    }
 
-  // Reset viseme
-  avatar.setViseme(ExpressionsCollection.NEUTRAL, 0);
+    // Reset viseme
+    avatar.setViseme(ExpressionsCollection.NEUTRAL, 0);
 
-  // Pre-compute the phoneme timeline for the full audio buffer
-  const phonemeBuffer = preparePhonemeBuffer(audio, { run: networkRun });
+    // Pre-compute the phoneme timeline for the full audio buffer
+    const phonemeBuffer = preparePhonemeBuffer(audio, { run: networkRun });
 
-  // ── Audio playback ──────────────────────────────────────
-  const audioBuf = audioCtx.createBuffer(1, audio.length, sampleRate);
-  audioBuf.getChannelData(0).set(audio);
+    // ── Audio playback ──────────────────────────────────────
+    const audioBuf = audioCtx.createBuffer(1, audio.length, sampleRate);
+    audioBuf.getChannelData(0).set(audio);
 
-  const source = audioCtx.createBufferSource();
-  source.buffer = audioBuf;
-  source.connect(audioCtx.destination);
-  source.start();
+    const source = audioCtx.createBufferSource();
+    source.buffer = audioBuf;
+    source.connect(audioCtx.destination);
+    source.start();
 
-  // ── Schedule phoneme dispatch ───────────────────────────
-  // Each phoneme tick is STEP_SAMPLES ≈ 20 ms (882 / 44100)
-  const stepMs = (STEP_SAMPLES / 44100) * 1000;
-  for (let i = 0; i < phonemeBuffer.length; i++) {
-    const item = phonemeBuffer[i];
-    // First phoneme fires at ~20 ms (position STEP_SAMPLES),
-    // second at ~40 ms, etc.
+    // ── Schedule phoneme dispatch ───────────────────────────
+    // Each phoneme tick is STEP_SAMPLES ≈ 20 ms (882 / 44100)
+    const stepMs = (STEP_SAMPLES / 44100) * 1000;
+    for (let i = 0; i < phonemeBuffer.length; i++) {
+      const item = phonemeBuffer[i];
+      // First phoneme fires at ~20 ms (position STEP_SAMPLES),
+      // second at ~40 ms, etc.
+      setTimeout(() => {
+        setViseme(item.phoneme);
+      }, (i + 1) * stepMs);
+    }
+
+    // ── Schedule viseme reset after audio finishes ──────────
+    const audioDurationMs = (audio.length / sampleRate) * 1000;
     setTimeout(() => {
-      setViseme(item.phoneme);
-    }, (i + 1) * stepMs);
-  }
-
-  // ── Cleanup after audio finishes ────────────────────────
-  const audioDurationMs = (audio.length / sampleRate) * 1000;
-  setTimeout(() => {
+      avatar.setViseme(ExpressionsCollection.NEUTRAL, 0);
+    }, audioDurationMs + 50);
+  } catch (err) {
+    console.error('[playTestAudio] Error:', err);
+  } finally {
     isPlaying = false;
     indicator.textContent = '● READY';
     indicator.style.color = '#53d769';
     avatar.setViseme(ExpressionsCollection.NEUTRAL, 0);
-  }, audioDurationMs + 50);
+  }
 }
 
 // ──────────────────────────────────────────────────────────
-//  Gaze demo
+//  Camera cycling
 // ──────────────────────────────────────────────────────────
 
-function toggleGazeDemo(): void {
-  gazeActive = !gazeActive;
-  gazeTime = 0;
-  document.getElementById('btn-demo-gaze')!.classList.toggle('active', gazeActive);
-}
-
-function forceBlink(): void {
-  avatar.blink();
-}
-
-function resetAvatar(): void {
-  avatar.setViseme(ExpressionsCollection.NEUTRAL, 0);
-  avatar.lookAt(0, 0);
-  gazeActive = false;
-  document.getElementById('btn-demo-gaze')!.classList.remove('active');
+function cycleCamera(): void {
+  const label = avatar.cycleCameraPreset();
+  document.getElementById('cam-display')!.textContent = label;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -332,15 +342,24 @@ async function startMic(): Promise<void> {
   }
 
   try {
-    // 1. Get mic stream (mono)
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1 },
-    });
+    // 1. Get mic stream (mono) with 5-second timeout
+    const TIMEOUT_MS = 5_000;
+    const stream = await Promise.race([
+      navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1 },
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`getUserMedia timed out after ${TIMEOUT_MS}ms`)), TIMEOUT_MS),
+      ),
+    ]);
     micStream = stream;
 
     // 2. Create dedicated AudioContext for mic pipeline
     const ctx = new AudioContext();
     micAudioCtx = ctx;
+
+    // Resume AudioContext (browsers may suspend due to autoplay policy)
+    await ctx.resume();
 
     // 3. Load the AudioWorklet processor
     await ctx.audioWorklet.addModule('/audio-processor.js');
@@ -372,13 +391,6 @@ async function startMic(): Promise<void> {
       if (msg && msg.type === 'audio_chunk') {
         const chunk = new Float32Array(msg.samples);
         streamingProcessor.feed(chunk);
-
-        // Also update the RMS display from the worklet's measurement
-        const rmsDisplay = document.getElementById('mic-energy');
-        if (rmsDisplay && msg.rms !== undefined) {
-          rmsDisplay.textContent = msg.rms.toFixed(4);
-          rmsDisplay.style.color = msg.rms >= 0.025 ? '#53d769' : '#888';
-        }
       }
     };
 
@@ -492,16 +504,11 @@ function startUiLoop(): void {
       fpsLastTime = now;
     }
 
-    // Gaze demo animation
-    if (gazeActive) {
-      gazeTime += 0.016;
-      const x = 0.5 * Math.sin(gazeTime * 0.7);
-      const y = 0.3 * Math.sin(gazeTime * 0.5 + 1.0);
-      avatar.lookAt(x, y);
+    // Update viseme display
+    const visemeDisplay = document.getElementById('viseme-display');
+    if (visemeDisplay) {
+      // viseme-display stays as-is (updated by setViseme)
     }
-
-    // Blink status (morph-driven, no longer tracked directly)
-    document.getElementById('blink-display')!.textContent = '-';
 
     animFrameId = requestAnimationFrame(tick);
   }
@@ -536,14 +543,8 @@ function setupUI(): void {
     });
   });
 
-  // Gaze demo
-  document.getElementById('btn-demo-gaze')!.addEventListener('click', toggleGazeDemo);
-
-  // Blink
-  document.getElementById('btn-blink')!.addEventListener('click', forceBlink);
-
-  // Reset
-  document.getElementById('btn-reset')!.addEventListener('click', resetAvatar);
+  // Camera toggle
+  document.getElementById('btn-cam')!.addEventListener('click', cycleCamera);
 
   // Mic toggle
   document.getElementById('btn-mic')!.addEventListener('click', () => {

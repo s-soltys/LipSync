@@ -27,8 +27,6 @@ import type { AvatarFeature } from './expression';
 export interface ModelLoadConfig {
   /** Path to the GLB file (relative to public/) */
   modelPath?: string;
-  /** Whether to use morph targets for visemes */
-  useMorphTargets?: boolean;
   /** Scale factor for the model */
   scale?: number;
   /** Y-offset for positioning the model */
@@ -37,7 +35,6 @@ export interface ModelLoadConfig {
 
 const DEFAULT_CONFIG: Required<ModelLoadConfig> = {
   modelPath: '/models/facecap.glb',
-  useMorphTargets: true,
   scale: 10,
   positionY: -3,
 };
@@ -54,8 +51,9 @@ export type MorphTargetMap = Map<string, number>;
  */
 function extractMorphTargets(mesh: THREE.Mesh): MorphTargetMap {
   const map: MorphTargetMap = new Map();
-  const geo = mesh.geometry as THREE.BufferGeometry;
-  const morphAttrs = geo.morphAttributes;
+  const geometry = mesh.geometry;
+  if (!(geometry instanceof THREE.BufferGeometry)) return map;
+  const morphAttrs = geometry.morphAttributes;
   if (!morphAttrs || !morphAttrs.position) return map;
 
   // Three.js r150+ GLTFLoader stores names in mesh.morphTargetDictionary
@@ -246,7 +244,8 @@ export function setMorphWeight(
     }
   }
   if (idx === undefined) return;
-  headMesh.morphTargetInfluences![idx] = weight;
+  if (!headMesh.morphTargetInfluences) return;
+  headMesh.morphTargetInfluences[idx] = weight;
 }
 
 /**
