@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="init()">
+	
+	<mx:Style>
+		@namespace spark "library://ns.adobe.com/flex/spark";
+		@namespace "library://ns.adobe.com/flex/mx";
+		
+        global {
+            fontSize:12;
+        }
+		
+		Button {
+		}
+		
+		.trainingPanelStyle {
+			padding-left: 10;
+			padding-top: 10;
+		}
+    </mx:Style>
+	
+	<mx:Script source="LipsyncTrainer.as"/>
+	
+	<mx:Panel id="trainingPanel" width="800" height="500" styleName="trainingPanelStyle" layout="horizontal" title="Neural network trainer" backgroundAlpha="0.6">
+		
+		<mx:Grid>
+			<mx:GridRow>
+					<mx:GridItem><mx:Label text="Target MSE"/></mx:GridItem>
+					<mx:GridItem><mx:TextInput id="targetMSEField" width="50" restrict="0-9." text="{Math.floor(targetMSESlider.value)/1000}" /></mx:GridItem>
+					<mx:GridItem><mx:Slider id="targetMSESlider" width="100" minimum="15" value="25" maximum="45" snapInterval="1" /></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+					<mx:GridItem><mx:Label text="Learning rate"/></mx:GridItem>
+					<mx:GridItem><mx:TextInput id="learningRateField" width="50" restrict="0-9." text="{learningRateSlider.value}" /></mx:GridItem>
+					<mx:GridItem><mx:Slider id="learningRateSlider" width="100" minimum="0.1" value="0.5" maximum="0.9" snapInterval="0.01" /></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+					<mx:GridItem><mx:Label text="Epochs"/></mx:GridItem>
+					<mx:GridItem><mx:TextInput id="epochsField" width="50" restrict="0-9" text="{epochsSlider.value}" /></mx:GridItem>
+					<mx:GridItem><mx:Slider id="epochsSlider" width="100" minimum="10" value="50" maximum="150" snapInterval="10" /></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+					<mx:GridItem><mx:Label text="Neurons / layer"/></mx:GridItem>
+					<mx:GridItem><mx:TextInput id="neuronsCountField" width="50" restrict="0-9" text="{neuronsCountSlider.value}" /></mx:GridItem>
+					<mx:GridItem><mx:Slider id="neuronsCountSlider" width="100" minimum="20" value="50" maximum="120" snapInterval="10" /></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow><mx:GridItem colSpan="3"><mx:HRule width="100%" height="15" /></mx:GridItem></mx:GridRow>
+			
+			
+			<mx:GridRow>
+					<mx:GridItem><mx:Label text="LPC order"/></mx:GridItem>
+					<mx:GridItem><mx:TextInput id="lpcOrderField" width="50" restrict="0-9." text="9" /></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+					<mx:GridItem><mx:Label text="Output count"/></mx:GridItem>
+					<mx:GridItem><mx:TextInput id="outputCountField" width="50" restrict="0-9." text="6" /></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+					<mx:GridItem><mx:Label text="Sampling decimate"/></mx:GridItem>
+					<mx:GridItem><mx:TextInput id="samplingDecimateField" width="50" restrict="0-9" text="{samplingDecimateSlider.value}" /></mx:GridItem>
+					<mx:GridItem><mx:Slider id="samplingDecimateSlider" width="100" minimum="4" value="6" maximum="6" snapInterval="2" /></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+					<mx:GridItem><mx:Label text="Window length"/></mx:GridItem>
+					<mx:GridItem><mx:TextInput id="windowLengthField" width="50" restrict="0-9" text="{windowLengthSlider.value}" /></mx:GridItem>
+					<mx:GridItem><mx:Slider id="windowLengthSlider" width="100" minimum="10" value="18" maximum="25" snapInterval="1" /></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+					<mx:GridItem><mx:Label text="Event delay"/></mx:GridItem>
+					<mx:GridItem><mx:TextInput id="eventDelayField" width="50" restrict="0-9" text="{eventDelaySlider.value}" /></mx:GridItem>
+					<mx:GridItem><mx:Slider id="eventDelaySlider" width="100" minimum="5" value="25" maximum="80" snapInterval="1" /></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow><mx:GridItem colSpan="3"><mx:HRule width="100%" height="15" /></mx:GridItem></mx:GridRow>
+			
+			<mx:GridRow>
+					<mx:GridItem><mx:Button label="Load samples" width="100%" click="loadSamples()"/></mx:GridItem>
+					<mx:GridItem><mx:Button label="Training" width="100%" click="trainNetwork()"/></mx:GridItem>
+					<mx:GridItem><mx:Button label="Complete training" width="100%" click="completeTraining()"/></mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+				<mx:GridItem><mx:ComboBox id="runComboBox" width="100%"><mx:ArrayCollection>
+						<mx:String>female/aeiou.mp3</mx:String>
+						<mx:String>female/count.mp3</mx:String>
+						<mx:String>female/example.mp3</mx:String>
+						<mx:String>female/lipsync.mp3</mx:String>
+						<mx:String>female/speech.mp3</mx:String>
+						<mx:String>male/aeiou.mp3</mx:String>
+						<mx:String>male/count.mp3</mx:String>
+						<mx:String>male/example.mp3</mx:String>
+						<mx:String>male/lipsync.mp3</mx:String>
+						<mx:String>male/speech.mp3</mx:String>
+				</mx:ArrayCollection></mx:ComboBox></mx:GridItem>
+				<mx:GridItem colSpan="1"><mx:Button label="Run network" click="runNetwork(runComboBox.text)"/></mx:GridItem>
+			</mx:GridRow>
+			
+		</mx:Grid>
+		
+		<mx:Grid>
+			<mx:GridRow>
+				<mx:GridItem>
+					<mx:TextArea id="log" width="400" height="120" editable="false" valueCommit="log.verticalScrollPosition=log.maxVerticalScrollPosition" />
+				</mx:GridItem>
+			</mx:GridRow>
+			<mx:GridRow>
+				<mx:GridItem>
+					<mx:TextArea id="output" width="400" height="260" editable="false" valueCommit="output.verticalScrollPosition=output.maxVerticalScrollPosition" />
+				</mx:GridItem>
+			</mx:GridRow>
+		</mx:Grid>
+		
+		<mx:ControlBar>
+			<mx:Button label="Clear" click="clearNetwork()"/>
+			<mx:Button label="Load neural network" click="loadNetwork()"/>
+			<mx:Button label="Save neural network" click="saveNetwork()"/>
+			<mx:Label id="phonemeLabel" text="" fontSize="25" />
+		</mx:ControlBar>
+		
+	</mx:Panel>
+	
+</mx:Application>

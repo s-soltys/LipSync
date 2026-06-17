@@ -1,0 +1,23 @@
+{
+  "name": "lipsync-ts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "vite build",
+    "build:tsc": "tsc",
+    "dev": "vite",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "@types/three": "^0.184.1",
+    "typescript": "^5.9.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "three": "^0.184.0"
+  }
+}

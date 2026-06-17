@@ -1,0 +1,287 @@
+[
+  {
+    "constant": "NULL",
+    "id": 0,
+    "viseme_id": 0,
+    "alias": "silence",
+    "binary_encoding": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "binary_string": "000000"
+  },
+  {
+    "constant": "v1a",
+    "id": 2,
+    "viseme_id": 1,
+    "alias": "v1a",
+    "binary_encoding": [
+      0,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "binary_string": "010000"
+  },
+  {
+    "constant": "v1b",
+    "id": 3,
+    "viseme_id": 1,
+    "alias": "v1b",
+    "binary_encoding": [
+      1,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "binary_string": "110000"
+  },
+  {
+    "constant": "v2a",
+    "id": 6,
+    "viseme_id": 2,
+    "alias": "v2a",
+    "binary_encoding": [
+      0,
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "binary_string": "011000"
+  },
+  {
+    "constant": "v2b",
+    "id": 7,
+    "viseme_id": 2,
+    "alias": "v2b",
+    "binary_encoding": [
+      1,
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "binary_string": "111000"
+  },
+  {
+    "constant": "v3a",
+    "id": 10,
+    "viseme_id": 3,
+    "alias": "v3a",
+    "binary_encoding": [
+      0,
+      1,
+      0,
+      1,
+      0,
+      0
+    ],
+    "binary_string": "010100"
+  },
+  {
+    "constant": "v3b",
+    "id": 11,
+    "viseme_id": 3,
+    "alias": "v3b",
+    "binary_encoding": [
+      1,
+      1,
+      0,
+      1,
+      0,
+      0
+    ],
+    "binary_string": "110100"
+  },
+  {
+    "constant": "v4a",
+    "id": 14,
+    "viseme_id": 4,
+    "alias": "v4a",
+    "binary_encoding": [
+      0,
+      1,
+      1,
+      1,
+      0,
+      0
+    ],
+    "binary_string": "011100"
+  },
+  {
+    "constant": "v4b",
+    "id": 15,
+    "viseme_id": 4,
+    "alias": "v4b",
+    "binary_encoding": [
+      1,
+      1,
+      1,
+      1,
+      0,
+      0
+    ],
+    "binary_string": "111100"
+  },
+  {
+    "constant": "v5a",
+    "id": 20,
+    "viseme_id": 5,
+    "alias": "v5a",
+    "binary_encoding": [
+      0,
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "binary_string": "001010"
+  },
+  {
+    "constant": "v5b",
+    "id": 21,
+    "viseme_id": 5,
+    "alias": "v5b",
+    "binary_encoding": [
+      1,
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    "binary_string": "101010"
+  },
+  {
+    "constant": "v6a",
+    "id": 30,
+    "viseme_id": 6,
+    "alias": "v6a",
+    "binary_encoding": [
+      0,
+      1,
+      1,
+      1,
+      1,
+      0
+    ],
+    "binary_string": "011110"
+  },
+  {
+    "constant": "v6b",
+    "id": 31,
+    "viseme_id": 6,
+    "alias": "v6b",
+    "binary_encoding": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      0
+    ],
+    "binary_string": "111110"
+  },
+  {
+    "constant": "v7a",
+    "id": 40,
+    "viseme_id": 7,
+    "alias": "v7a",
+    "binary_encoding": [
+      0,
+      0,
+      0,
+      1,
+      0,
+      1
+    ],
+    "binary_string": "000101"
+  },
+  {
+    "constant": "v7b",
+    "id": 41,
+    "viseme_id": 7,
+    "alias": "v7b",
+    "binary_encoding": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      1
+    ],
+    "binary_string": "100101"
+  },
+  {
+    "constant": "v8a",
+    "id": 52,
+    "viseme_id": 8,
+    "alias": "v8a",
+    "binary_encoding": [
+      0,
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "binary_string": "001011"
+  },
+  {
+    "constant": "v8b",
+    "id": 53,
+    "viseme_id": 8,
+    "alias": "v8b",
+    "binary_encoding": [
+      1,
+      0,
+      1,
+      0,
+      1,
+      1
+    ],
+    "binary_string": "101011"
+  },
+  {
+    "constant": "v9a",
+    "id": 62,
+    "viseme_id": 9,
+    "alias": "v9a",
+    "binary_encoding": [
+      0,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "binary_string": "011111"
+  },
+  {
+    "constant": "v9b",
+    "id": 63,
+    "viseme_id": 9,
+    "alias": "v9b",
+    "binary_encoding": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "binary_string": "111111"
+  }
+]

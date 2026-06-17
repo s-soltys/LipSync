@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LipSync-ts — 3D Avatar Editor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a2e;
+      --panel-bg: #16213e;
+      --accent: #0f3460;
+      --text: #e0e0e0;
+      --text-dim: #888;
+      --green: #53d769;
+      --red: #e74c3c;
+      --btn-bg: #2a2a4a;
+      --btn-hover: #3a3a5a;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    #app {
+      width: 720px;
+      min-height: 700px;
+      background: var(--panel-bg);
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    /* ── Header ── */
+    #header {
+      background: var(--accent);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1a1a3e;
+    }
+    #header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    #header .status {
+      font-size: 12px;
+      color: var(--green);
+    }
+
+    /* ── Toolbar ── */
+    #toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #0d1b2a;
+      border-bottom: 1px solid #1a1a3e;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #toolbar label {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .btn {
+      background: var(--btn-bg);
+      color: var(--text);
+      border: 1px solid #3a3a5a;
+      padding: 5px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      font-family: inherit;
+    }
+    .btn:hover {
+      background: var(--btn-hover);
+      border-color: #5a5a7a;
+    }
+    .btn.active {
+      background: var(--green);
+      color: #000;
+      border-color: var(--green);
+    }
+    .btn.toggle-on {
+      background: #e67e22;
+      border-color: #e67e22;
+      color: #fff;
+    }
+    .btn.small {
+      font-size: 11px;
+      padding: 3px 10px;
+    }
+    .btn.audio-btn {
+      background: #2a4a2a;
+      border-color: #3a6a3a;
+    }
+    .btn.audio-btn:hover {
+      background: #3a6a3a;
+    }
+    .btn.audio-btn.active {
+      background: var(--red);
+      border-color: var(--red);
+    }
+
+    /* ── Mic button ── */
+    .btn.mic-btn {
+      background: #2a2a4a;
+      border-color: #3a3a5a;
+      font-size: 16px;
+      padding: 5px 12px;
+    }
+    .btn.mic-btn.active {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+      animation: mic-pulse 1.2s ease-in-out infinite;
+    }
+    .btn.muted {
+      opacity: 0.5;
+    }
+    @keyframes mic-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+      50%      { box-shadow: 0 0 0 6px rgba(231, 76, 60, 0); }
+    }
+
+    .separator {
+      width: 1px;
+      height: 20px;
+      background: #2a2a4a;
+      margin: 0 4px;
+    }
+    .spacer {
+      flex: 1;
+    }
+
+    /* ── Canvas container ── */
+    #canvas-container {
+      flex: 1;
+      min-height: 400px;
+      background: #111;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #canvas-container canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    #canvas-container .hint {
+      color: var(--text-dim);
+      font-size: 13px;
+      opacity: 0.5;
+    }
+
+    /* ── Status bar ── */
+    #status-bar {
+      display: flex;
+      gap: 16px;
+      padding: 6px 16px;
+      background: #0d1b2a;
+      border-top: 1px solid #1a1a3e;
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: 'Consolas', 'Courier New', monospace;
+    }
+    #status-bar span {
+      white-space: nowrap;
+    }
+    #status-bar .val {
+      color: var(--green);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 740px) {
+      #app { width: 100%; min-height: 100vh; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <div id="header">
+      <h1>⚡ LipSync-ts</h1>
+      <span class="status" id="status-indicator">● READY</span>
+    </div>
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+      <div class="separator"></div>
+      <label>TEST</label>
+      <button class="btn audio-btn small" data-audio="aeiou">aeiou</button>
+      <button class="btn audio-btn small" data-audio="count">count</button>
+      <button class="btn audio-btn small" data-audio="example">example</button>
+      <button class="btn audio-btn small" data-audio="lipsync">lipsync</button>
+      <button class="btn audio-btn small" data-audio="speech">speech</button>
+      <div class="separator"></div>
+      <label>CAM</label>
+      <button class="btn small" id="btn-cam">📷</button>
+      <div class="separator"></div>
+      <label>MIC</label>
+      <button class="btn mic-btn" id="btn-mic">🎤</button>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- 3D Viewport -->
+    <div id="canvas-container">
+      <div class="hint">Initializing 3D scene…</div>
+    </div>
+
+    <!-- Status bar -->
+    <div id="status-bar">
+      <span>FPS: <span class="val" id="fps-display">0</span></span>
+      <span>Viseme: <span class="val" id="viseme-display">neutral</span></span>
+      <span>Cam: <span class="val" id="cam-display">Standard</span></span>
+      <span>Mic: <span class="val" id="mic-energy">-</span></span>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
