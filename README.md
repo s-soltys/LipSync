@@ -146,7 +146,11 @@ npm run test:watch  # Watch mode
 
 ## Deployment
 
-The production build is deployed at:
+The app is automatically deployed to **GitHub Pages** on every push to `master` via GitHub Actions:
+
+**[https://s-soltys.github.io/LipSync/](https://s-soltys.github.io/LipSync/)**
+
+The production build is also served via Cloudflare tunnel:
 
 **[https://lipsync-app.szymon-ai.cc](https://lipsync-app.szymon-ai.cc)**
 
