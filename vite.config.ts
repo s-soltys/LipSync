@@ -3,8 +3,19 @@ import { existsSync, cpSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export default defineConfig({
+  base: process.env.NODE_ENV === 'production' ? '/LipSync/' : '/',
   server: {
     allowedHosts: ['lipsync-app.szymon-ai.cc', '.szymon-ai.cc'],
+  },
+  build: {
+    sourcemap: 'hidden',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+        },
+      },
+    },
   },
   plugins: [
     {

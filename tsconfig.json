@@ -8,8 +8,8 @@
     "strict": true,
     "outDir": "dist",
     "rootDir": "src",
-    "declaration": true,
-    "sourceMap": true,
+    "declaration": false,
+    "types": ["vite/client"],
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },

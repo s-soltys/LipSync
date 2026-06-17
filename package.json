@@ -6,9 +6,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "vite build",
-    "build:tsc": "tsc",
+    "build:tsc": "tsc --noEmit",
     "dev": "vite",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.9.3",
