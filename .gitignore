@@ -3,6 +3,12 @@ bin/
 bin-debug/
 bin-release/
 
+# TypeScript / Node
+node_modules/
+lipsync-ts/dist/
+lipsync-ts/trace_simulation.ts
+lipsync-ts/agent-prompts/
+
 # Other files and folders
 .settings/
 

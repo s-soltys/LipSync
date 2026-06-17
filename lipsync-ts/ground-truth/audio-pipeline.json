@@ -1,0 +1,12 @@
+{
+  "sampling_rate": 44100,
+  "decimation_factor": 6,
+  "stride": 7,
+  "decimation_formula": "keep every 7th sample",
+  "energy_formula": "sum(|sample|)/N",
+  "activation_threshold": 0.025,
+  "window_length_ms": 18,
+  "samples_per_window": 794,
+  "phoneme_recognition_delay_ms": 20,
+  "samples_per_step": 882
+}
