@@ -22,10 +22,13 @@ import type { Phoneme } from './player/player';
 //  Configuration
 // ──────────────────────────────────────────────────────────
 
+/** Vite base path — resolves to '/' in dev, '/LipSync/' on GitHub Pages. */
+const BASE: string = (import.meta as any).env?.BASE_URL ?? '/';
+
 /** Set to true to use the Face Cap GLTF model instead of procedural head. */
 const USE_GLTF_MODEL = true;
 /** Path to the GLTF model (relative to public/) */
-const GLTF_MODEL_PATH = '/models/brunette.glb';
+const GLTF_MODEL_PATH = `${BASE}models/brunette.glb`;
 
 // ──────────────────────────────────────────────────────────
 //  State
@@ -58,11 +61,11 @@ const container = document.getElementById('canvas-container')!;
 // ──────────────────────────────────────────────────────────
 
 const SAMPLE_MAP: Record<string, string> = {
-  aeiou:   '/samples/aeiou.wav',
-  count:   '/samples/count.wav',
-  example: '/samples/example.wav',
-  lipsync: '/samples/lipsync.wav',
-  speech:  '/samples/speech.wav',
+  aeiou:   `${BASE}samples/aeiou.wav`,
+  count:   `${BASE}samples/count.wav`,
+  example: `${BASE}samples/example.wav`,
+  lipsync: `${BASE}samples/lipsync.wav`,
+  speech:  `${BASE}samples/speech.wav`,
 };
 
 /** Cache of decoded AudioBuffers, keyed by type. */
@@ -362,7 +365,7 @@ async function startMic(): Promise<void> {
     await ctx.resume();
 
     // 3. Load the AudioWorklet processor
-    await ctx.audioWorklet.addModule('/audio-processor.js');
+    await ctx.audioWorklet.addModule(`${BASE}audio-processor.js`);
 
     // 4. Create source + worklet node
     const source = ctx.createMediaStreamSource(stream);
@@ -605,7 +608,7 @@ async function init(): Promise<void> {
     indicator.textContent = '● LOADING';
     indicator.style.color = '#f39c12';
 
-    const resp = await fetch('/ground-truth/nn-weights.json');
+    const resp = await fetch(`${BASE}ground-truth/nn-weights.json`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
     const raw = await resp.text();
     const serialized: SerializedNetwork = parseNetworkJson(raw);
