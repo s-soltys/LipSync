@@ -150,10 +150,6 @@ The app is automatically deployed to **GitHub Pages** on every push to `master` 
 
 **[https://s-soltys.github.io/LipSync/](https://s-soltys.github.io/LipSync/)**
 
-The production build is also served via Cloudflare tunnel:
-
-**[https://lipsync-app.szymon-ai.cc](https://lipsync-app.szymon-ai.cc)**
-
 Deployment process:
 ```bash
 npm run build
